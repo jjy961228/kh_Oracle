@@ -1,0 +1,124 @@
+------------------------------------ Oracle Object-----------------------------
+--Sequence: 순차적으로 정수값을 자동으로생상하는 객체
+--시퀀의 시작값(START WITH)은 변경하지 못한다 -->삭제,생성을 통해 교체해야한다
+CREATE SEQUENCE SEQ_USERNO;     --기본값으로 생성
+
+SELECT SEQ_USERNO.NEXTVAL FROM DUAL; --값을 1 증가시키고 보여줌
+SELECT SEQ_USERNO.CURRVAL FROM DUAL; --현재값을 보여줌
+
+CREATE SEQUENCE SEQ_USERNO_SEC
+START WITH 100  --처음은 100으로 시작 
+INCREMENT BY 10 --10씩증가
+MAXVALUE 1000   --최대는 1000
+NOCYCLE
+NOCACHE;    --메모리 생성 : 생략가능 
+
+SELECT SEQ_USERNO_SEC.NEXTVAL FROM DUAL;
+SELECT SEQ_USERNO_SEC.CURRVAL FROM DUAL;
+SELECT * FROM USER_SEQUENCES;   --Data Dictionary View : 만든거 보여주기
+
+CREATE TABLE SHOP_MEMBER(
+    USER_NO NUMBER UNIQUE,
+    USER_ID VARCHAR2(20) PRIMARY KEY,
+    USER_PWD VARCHAR2(30) NOT NULL,
+    USER_NAME VARCHAR2(30) NOT NULL,
+    USER_GENDER VARCHAR2(2),
+    USER_PHONE VARCHAR2(20),
+    USER_EMAIL VARCHAR2(50)
+    );
+INSERT INTO SHOP_MEMBER 
+VALUES(1, 'khuser01','pass01', '일용자' , 'F', '01029223933' , 'khuser01@iei.or.kr');
+
+INSERT INTO SHOP_MEMBER 
+VALUES(2, 'khuser02','pass02', '이용자' , 'W', '01029223933' , 'khuser01@iei.or.kr');
+COMMIT;
+
+ALTER TABLE SHOP_MEMBER             --SHOP_GENDER에서 'W'대신  '여 넣기위해 
+MODIFY USER_GENDER VARCHAR2(100);
+
+DELETE FROM SHOP_MEMBER;
+COMMIT;
+
+-------------------시퀀스 이용해 만들기
+CREATE SEQUENCE SEQ_USER_NO;
+--INSERT 할때 , 번호대신 1씩증가하는 SEQ_USER_NO.NEXTVAL 넣어주기
+INSERT INTO SHOP_MEMBER VALUES(SEQ_USER_NO.NEXTVAL, 'khuser01', 'pass01', '일용자', '남'
+,'01023239432', 'khuser01@iei.or.kr');
+INSERT INTO SHOP_MEMBER VALUES(SEQ_USER_NO.NEXTVAL, 'khuser02', 'pass02', '이용자', '여'
+,'01022323432', 'khuser02@iei.or.kr');
+COMMIT;
+
+------------------ 시퀀스 간단 예제 
+--KH_MEMBER 테이블을 생성
+--컬럼
+--MEMBER_ID	NUNBER
+--MEMBER_NAME	VARCHAR2(20)
+--MEMBER_AGE	NUMBER
+--MEMBER_JOIN_COM	NUMBER
+CREATE TABLE KH_MEMBER(
+    MEMBER_ID NUMBER,
+    MEMBER_NAME	VARCHAR2(20),
+    MEMBER_AGE	NUMBER,
+    MEMBER_JOIN_COM	NUMBER
+    );
+
+--이때 해당 사원들의 정보를 INSERT 해야 함
+--ID 값과 JOIN_COM은 SEQUENCE 를 이용하여 정보를 넣고자 함
+
+--ID값은 500 번 부터 시작하여 10씩 증가하여 저장 하고자 함
+--JOIN_COM 값은 1번부터 시작하여 1씩 증가하여 저장 해야 함
+--(ID 값과 JOIN_COM 값의 MAX는 10000으로 설정)
+CREATE SEQUENCE SEQ_JOIN_COM
+START WITH 1
+INCREMENT BY 1
+MAXVALUE 1000
+NOCYCLE;
+
+CREATE SEQUENCE SEQ_MEMBER_ID
+START WITH 500
+INCREMENT BY 10
+MAXVALUE 1000
+NOCYCLE;
+
+INSERT INTO KH_MEMBER
+VALUES( SEQ_MEMBER_ID.NEXTVAL, '홍길동' , 20, SEQ_JOIN_COM.NEXTVAL);
+INSERT INTO KH_MEMBER
+VALUES( SEQ_MEMBER_ID.NEXTVAL, '김말똥' , 30, SEQ_JOIN_COM.NEXTVAL);
+INSERT INTO KH_MEMBER
+VALUES( SEQ_MEMBER_ID.NEXTVAL, '삼식이' , 40, SEQ_JOIN_COM.NEXTVAL);
+INSERT INTO KH_MEMBER
+VALUES( SEQ_MEMBER_ID.NEXTVAL, '고길똥' , 24, SEQ_JOIN_COM.NEXTVAL);
+--	MEMBER_ID	MEMBER_NAME	MEMBER_AGE	MEMBER_JOIN_COM	
+--	500		홍길동		20		1
+--	510		김말똥		30		2
+--	520		삼식이		40		3
+--	530		고길똥		24		4
+COMMIT;     --커밋을 입력하지않으면 아직 트랜젝션 상태이다 .
+
+--시퀀스의 정보바꾸기
+--시퀀의 시작값(START WITH)은 변경하지 못한다 -->삭제,생성을 통해 교체해야한다
+-- DDL 명령문 따른다 : (CREATE, ALTER, DROP)  SEQUENCE   객체명
+ALTER SEQUENCE SEQ_MEMBER_ID
+INCREMENT BY 100
+MAXVALUE 10000;     --이런식으로 변경
+DROP SEQUENCE SEQ_MEMBER_ID; --이런식으로 삭제 
+
+
+--ORACLE OBJECT , INDEX : 자주사용하는 컬럼에 INDEX걸어주면 그컬럼을 조회할때 속도가 빨라진다
+--장점: 검색속도가 빨라진다 
+--단점: 추가저장공간 필요, 인덱스생성시 시간이걸린다
+CREATE INDEX EMP_IND_NND 
+ON EMPLOYEE(EMP_NAME , EMP_NO, HIRE_DATE);  --> 열을 인덱스로 만들고
+
+SELECT EMP_NAME, EMP_NO, HIRE_DATE      --> 조회
+FROM EMPLOYEE;
+
+
+
+
+    
+
+
+    
+
+

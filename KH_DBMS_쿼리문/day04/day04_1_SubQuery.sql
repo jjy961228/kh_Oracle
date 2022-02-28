@@ -1,0 +1,302 @@
+-------------------------Sub Query-------------------------------------
+--SubQuery: 쿼리안에 쿼리가 있는것
+--단일행 서브쿼리: 결과값이 1개 -> 행이1개,열이1개
+--다중행 서브쿼리: 
+SELECT AVG(SALARY) FROM EMPLOYEE;
+SELECT 
+    EMP_ID,
+    EMP_NAME,
+    JOB_CODE,
+    SALARY
+FROM EMPLOYEE
+WHERE SALARY > (SELECT AVG(SALARY) FROM EMPLOYEE);
+
+--전지연 직원의 관리자의 이름을 출력하여라.
+SELECT * FROM EMPLOYEE;
+--1)
+SELECT MANAGER_ID FROM EMPLOYEE
+WHERE EMP_NAME = '전지연';
+--2)
+SELECT EMP_NAME FROM EMPLOYEE
+WHERE EMP_ID = 214;
+
+--> 서브쿼리를 이용하면 1,2를 한번에 쓸 수 있다.
+SELECT MANAGER_ID FROM EMPLOYEE
+WHERE EMP_NAME = (SELECT MANAGER_ID FROM EMPLOYEE WHERE MANAGER_ID= '전지연');
+
+------------------실습문제 
+--1. 윤은해와 급여가 같은 사원들을 검색해서, 사원번호,사원이름, 급여를 출력하라.
+--단, 윤은해는 출력 되면 안됨
+SELECT EMP_ID , EMP_NAME, SALARY
+FROM EMPLOYEE
+WHERE SALARY = (SELECT SALARY FROM EMPLOYEE WHERE EMP_NAME= '윤은해')
+AND EMP_NAME != '윤은해';
+
+--2. employee 테이블에서 기본급여가 제일 많은 사람과 제일 적은 사람의 정보를 
+-- 사번, 사원명, 기본급여를 나타내세요.
+SELECT * FROM EMPLOYEE;
+SELECT 
+    EMP_NAME,
+    EMP_ID,
+    SALARY
+FROM EMPLOYEE
+WHERE SALARY = (SELECT MAX(SALARY) FROM EMPLOYEE)
+    OR SALARY = (SELECT  MIN (SALARY) FROM  EMPLOYEE);  --/WHERE SALARY = (SELECT MAX(SALARY), MIN(SALARY) FROM EMPLOYEE); 
+    
+ -- 3. D1, D2부서에 근무하는 사원들 중에서
+-- 기본급여가 D5 부서 직원들의 '평균월급' 보다 많은 사람들만 
+-- 부서번호, 사원번호, 사원명, 월급을 나타내세요.
+SELECT * FROM EMPLOYEE;
+--1) D1,D2인 직원들~
+SELECT 
+    JOB_CODE,
+    EMP_ID,
+    EMP_NAME,
+    SALARY
+FROM EMPLOYEE
+WHERE DEPT_CODE IN('D1','D2')   
+--2)부서별 평균월급
+AND SALARY > (SELECT AVG(SALARY) FROM EMPLOYEE
+GROUP BY DEPT_CODE
+HAVING DEPT_CODE='D5');
+--3)합체
+SELECT 
+    JOB_CODE,
+    EMP_ID,
+    EMP_NAME,
+    SALARY
+FROM EMPLOYEE
+WHERE DEPT_CODE IN('D1','D2')   
+AND SALARY > (SELECT AVG(SALARY) FROM EMPLOYEE
+GROUP BY DEPT_CODE
+HAVING DEPT_CODE='D5');
+
+
+--다중행 서브쿼리
+SELECT EMP_ID, EMP_NAME, SALARY
+FROM EMPLOYEE
+WHERE DEPT_CODE IN ('D3','D5');
+-- 송종기, 박나라와 부서가 같은 직원들의 사원번호, 사원명, 급여를 출력하시오.
+select * from EMPLOYEE;
+SELECT EMP_ID, EMP_NAME, SALARY
+FROM EMPLOYEE
+WHERE DEPT_CODE IN ('D9','D5');
+
+SELECT EMP_ID, EMP_NAME, SALARY
+FROM EMPLOYEE
+WHERE DEPT_CODE IN (SELECT DEPT_CODE FROM EMPLOYEE WHERE EMP_NAME IN('송종기','박나라'));-- (SELECT DEPT_CODE FROM EMPLOYEE WHERE EMP_NAME IN('송종기','박나라')): D9,D5 를 찾아준것이다
+
+--@실습문제
+-- 차태연, 전지연 사원의 급여등급(emplyee테이블의 sal_level컬럼)과 같은 사원의 직급명, 사원명을 출력
+-- 하시오
+SELECT SAL_LEVEL 
+    FROM EMPLOYEE
+    WHERE EMP_NAME IN('차태연' , '전지연');
+SELECT JOB_NAME , EMP_NAME
+    FROM EMPLOYEE
+JOIN JOB USING(JOB_CODE)
+WHERE SAL_LEVEL IN (SELECT SAL_LEVEL FROM EMPLOYEE WHERE EMP_NAME IN ('차태연', '전지연'));
+
+
+
+--SLECT (1) FROM (2) WHERE(3)
+-->서브쿼리가 -> (1): 스칼라 서브쿼리   (2): 인라인뷰 서브쿼리   (3)서브쿼리
+
+--1)스칼라 서브쿼리 -> JOIN과 비슷 : 스칼라 서브쿼리의 결과값은 1개의 행만 반환해서
+--장점: 캐싱효과(쿼리문의 재사용성), 속도가빠름(데이터가 적을때)
+--부서명을 출력하고싶다 ~
+SELECT EMP_NAME, DEPT_TITLE
+FROM EMPLOYEE
+JOIN DEPARTMENT ON (DEPT_CODE = DEPT_ID);       --> 이것을 스칼라 서브쿼리로도 할 수 있다.
+
+SELECT EMP_NAME,
+    (SELECT DEPT_TITLE FROM DEPARTMENT DEPT WHERE DEPT.DEPT_ID = EMP.DEPT_CODE)
+FROM EMPLOYEE EMP;
+
+--2)상호연관 서브쿼리 : 서브쿼리가 만든 결과값을 메인 쿼리가 사용할때
+
+
+--3)인라인뷰
+SELECT EMP_NAME,SALARY, EMAIL, PHONE
+FROM (SELECT EMP_NAME, SALARY, EMAIL, PHONE FROM EMPLOYEE);
+
+SELECT EMP_NAME,SALARY, EMAIL, PHONE
+FROM (SELECT ROWNUM EMP_NAME, SALARY, EMAIL, PHONE FROM EMPLOYEE);  --ROWNUM: 행의갯수를 출력해준다
+
+SELECT EMP_NAME,SALARY, EMAIL, PHONE FROM EMPLOYEE
+WHERE ROWNUM <2;
+
+--TOP-N분석 -> ROWNUM사용
+SELECT MEP_NAME, SALRAY
+FROM EMPLOYEE 
+ORDER BY DESC; --여기뒤에 WHERE ROWNUM< 6을 못한다  -> 인라인뷰 이용
+                --정렬 후 ,5개를 자르고 싶은것이다
+                --자르고, 정렬하면 값이 달라진다
+SELECT * 
+FROM(SELECT EMP_NAME, SALARY
+FROM EMPLOYEE ORDER BY SALARY DES)
+WHERE ROWNUM < 6;   --아렇게 정렬후, 잘라야한다
+
+--WITH: 인라인뷰에 알리아스 해줄때 사용한다 .
+WITH TOP_SAL AS (SELECT EMP_NAME, SALARY
+FROM EMPLOYEE ORDER BY SALARY DESC)
+SELECT *
+FROM TOP_SAL
+WHERE ROWNUM < 6;
+
+--------------------------------랭킹구하기------------------------------
+--RANK() OVER : 동등순위(19)2명 -> 바로 21위로 넘어간다
+--              ROWNUM과 다르다
+--회사의 연봉순위 출력
+SELECT 
+    EMP_NAME, SALARY*12 "연봉",
+    RANK() OVER(ORDER BY SALARY DESC) "순위"  --SALARY순으로 랭킹을 매긴다
+FROM EMPLOYEE;
+--DENSE_RANK() OVER :동등순위(2)명 이고,  23명이지만 끝등수가 22명이다
+SELECT 
+    EMP_NAME, SALARY*12 "연봉",
+    DENSE_RANK()OVER(ORDER BY SALARY DESC) "순위"  --SALARY순으로 랭킹을 매긴다
+FROM EMPLOYEE;
+
+
+
+
+
+
+-- 서브쿼리 실습 문제
+--문제1
+--기술지원부에 속한 사람들의 사람의 이름,부서코드,급여를 출력하시오
+SELECT EMP_NAME, DEPT_CODE, SALARY
+FROM EMPLOYEE
+WHERE DEPT_CODE = (SELECT DEPT_ID FROM DEPARTMENT WHERE DEPT_TITLE = '기술지원부');
+
+--문제2
+--기술지원부에 속한 사람들 중 가장 연봉이 높은 사람의 이름,부서코드,급여를 출력하시오   
+--인라인뷰
+SELECT * FROM(
+SELECT EMP_NAME, DEPT_CODE, SALARY
+FROM EMPLOYEE
+WHERE DEPT_CODE = (SELECT DEPT_ID FROM DEPARTMENT WHERE DEPT_TITLE = '기술지원부')
+ORDER BY SALARY DESC)
+WHERE ROWNUM = 1;
+
+--랭크오버
+SELECT EMP_NAME, DEPT_CODE, SALARY, RANK() OVER(ORDER BY SALARY DESC) "순위"
+FROM EMPLOYEE
+WHERE DEPT_CODE = (SELECT DEPT_ID FROM DEPARTMENT WHERE DEPT_TITLE = '기술지원부')
+AND ROWNUM = 1;
+--이게 정답 -> 인라인뷰 이용
+SELECT ROWNUM, EMP_NAME, DEPT_CODE, SALARY, "순위" 
+FROM(
+SELECT EMP_NAME, DEPT_CODE, SALARY, RANK() OVER(ORDER BY SALARY DESC) "순위"
+FROM EMPLOYEE
+WHERE DEPT_CODE = (SELECT DEPT_ID FROM DEPARTMENT WHERE DEPT_TITLE = '기술지원부'))
+WHERE ROWNUM = 1;
+
+--문제3
+--매니저가 있는 사원중에 월급이 전체사원 평균을 넘고 
+--사번,이름,매니저 이름,월급(만원단위부터)을 구하시오
+ --* 단, JOIN을 이용하시오
+ SELECT EMP_ID, EMP_NAME, SALARY, MANAGER_ID
+ FROM EMPLOYEE;     -->매니저 아이디가 NULL이 아니어야 매니저가 있는거다
+ 
+ SELECT EMP_ID, EMP_NAME, SALARY, MANAGER_ID
+ FROM EMPLOYEE
+ WHERE MANAGER_ID IS NOT NULL
+ AND SALARY > (SELECT AVG(SALARY) FROM EMPLOYEE);
+--SELF JOIN
+SELECT EMP.EMP_ID, EMP.EMP_NAME, EMP.SALARY, MNG.EMP_NAME "매니저 이름"
+FROM EMPLOYEE EMP
+JOIN EMPLOYEE MNG ON (EMP.MANAGER_ID = MNG.EMP_ID)
+WHERE EMP.MANAGER_ID IS NOT NULL
+AND EMP.SALARY > (SELECT AVG(SALARY) FROM EMPLOYEE);
+
+SELECT * FROM EMPLOYEE;
+--문제4
+--부서 별 각 직급마다 급여 등급이 가장 높은 직원의 이름, 직급코드, 급여, 급여등급 조회
+--급여등급: SAL_LEVEL : S1이가장높다 ->MIN(SAL_LEVEL)        --GROUP BY(JOB_CODE) :JOB_CODE 밖에 출력못한다
+
+--1)SELF JOIN
+SELECT
+    E1.DEPT_CODE,
+    E1.EMP_NAME,
+    E1.JOB_CODE,
+    E1.SALARY,
+    E1.SAL_LEVEL
+FROM EMPLOYEE E1
+JOIN EMPLOYEE E2 ON E1.JOB_CODE = E2.JOB_CODE;
+
+--2)상호연관쿼리 :최소값을 구하기위해서 썻다
+SELECT
+    E1.DEPT_CODE,
+    E1.EMP_NAME,
+    E1.JOB_CODE,
+    E1.SALARY,
+    E1.SAL_LEVEL
+FROM EMPLOYEE E1
+WHERE E1.SAL_LEVEL 
+= (SELECT MIN(E2.SAL_LEVEL) FROM EMPLOYEE E2 WHERE E1.JOB_CODE = E2.JOB_CODE) -- 상관쿼리
+ORDER BY 1;
+
+
+
+--문제5
+--부서별 평균 급여가 2200000 이상인 부서명, 평균 급여 조회
+--단, 평균 급여는 소수점 버림
+--1) 이 방법이 안댄다
+SELECT DEPT_TITLE , AVG(SALARY)
+FROM EMPLOYEE
+JOIN DEPARTMENT ON DEPT_CODE = DEPT_ID
+GROUP BY DEPT_CODE;
+--1) 부서별 평균 급여
+SELECT DEPT_CODE , FLOOR(AVG(SALARY))
+FROM EMPLOYEE
+GROUP BY DEPT_CODE;
+--2)인라인뷰 -> 테이블 처럼 동작할때사용 (인라인뷰 이용해 조인하기)
+SELECT DEPT_TITLE "부서명", "평균급여"
+FROM(
+SELECT DEPT_CODE, FLOOR(AVG(SALARY)) "평균급여"
+FROM EMPLOYEE
+GROUP BY DEPT_CODE)
+JOIN DEPARTMENT ON DEPT_CODE = DEPT_ID
+ORDER BY 1;
+--3) 220000이상
+SELECT DEPT_TITLE "부서명", "평균급여"
+FROM(
+SELECT DEPT_CODE, FLOOR(AVG(SALARY)) "평균급여"
+FROM EMPLOYEE
+GROUP BY DEPT_CODE
+HAVING FLOOR(AVG(SALARY)) >= 2200000)
+JOIN DEPARTMENT ON DEPT_CODE = DEPT_ID
+ORDER BY 1;
+
+--문제6
+--직급의 연봉 평균보다 적게 받는 여자사원의   -> 직급별 평균연봉보다 작은거 ->상관쿼리
+--사원명,직급코드,부서코드,연봉을 이름 오름차순으로 조회하시오
+--연봉 계산 => (급여+(급여*보너스))*12    
+-- 사원명,직급명,부서명,연봉은 EMPLOYEE 테이블을 통해 출력이 가능함
+SELECT EMP_NAME, JOB_CODE ,DEPT_CODE , SALARY
+FROM EMPLOYEE
+WHERE SUBSTR(EMP_NO,8,1) = 2
+AND- SALRAY * 12 < (SELECT AVG(*12) FROM EMPLOYEE); --직급별 연봉 평균보다 작은사람
+
+SELECT EMP_NAME, JOB_CODE ,DEPT_CODE , SALARY
+FROM EMPLOYEE "E"
+WHERE SUBSTR(EMP_NO,8,1) = 2
+AND- SALRAY * 12 < (SELECT AVG(*12) FROM EMPLOYEE "Y"   --서브쿼리 & JOIN
+                        WHERE E.JOB_CODE = Y.JOB_CODE)
+                        ORDER BY 1;
+
+
+
+
+
+--1)여자사원
+SELECT EMP_NAME FROM EMPLOYEE
+WHERE EMP_NO LIKE '%-2%';    
+--2)직급별 평균연봉    
+(SELECT JOB_CODE FROM EMPLOYEE
+         GROUP BY JOB_CODE
+          HAVING SALARY < (SELECT SALARY FROM EMPLOYEE WHERE AVG(SALARY));
+--3)
+

@@ -1,0 +1,2 @@
+--1) VIEW 만들기 위해 권한 부여
+GRANT CREATE VIEW TO KH;
